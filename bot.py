@@ -6,9 +6,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import Message, FSInputFile
 from aiogram.enums import ContentType
 
-TOKEN = "TOKEN"
+TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+VMAX = 600
 
 
 @dp.message()
@@ -34,40 +35,35 @@ async def video(msg: Message) -> None:
             if downloaded:
                 await msg.answer('Downloaded')
 
-            if v.width != v.height or v.duration > 60:
+            if v.width != v.height or v.width > VMAX or v.height > VMAX:
                 await msg.answer('Video has big resolution or more than 60 seconds long.'
                                  ' It will be resized and/or reduced.')
 
             w, h = v.width, v.height
-            vmax = 600
 
             if w != h:
-                if w > vmax and h > vmax:
-                    crop = f'crop={vmax}:{vmax}:{int((w - vmax) / 2)}:{int((h - vmax) / 2)}'
+                if w > VMAX and h > VMAX:
+                    crop = f'crop={VMAX}:{VMAX}:{int((w - VMAX) / 2)}:{int((h - VMAX) / 2)}'
 
-                elif w <= vmax < h:
+                elif w <= VMAX < h:
                     crop = f'crop={w}:{w}:{0}:{int((h - w) / 2)}'
 
-                elif w > vmax >= h:
+                elif w > VMAX >= h:
                     crop = f'crop={h}:{h}:{int((w - h) / 2)}:{0}'
 
-                elif w <= vmax and h <= vmax:
+                elif w <= VMAX and h <= VMAX:
                     if w > h:
                         crop = f'crop={h}:{h}:{int((w - h) / 2)}:{0}'
                     elif w < h:
                         crop = f'crop={w}:{w}:{0}:{int((h - w) / 2)}'
 
             else:
-                if w >= vmax:
-                    crop = f'crop={vmax}:{vmax}:{int((w - vmax) / 2)}:{int((h - vmax) / 2)}'
-                elif w < vmax:
+                if w >= VMAX:
+                    crop = f'crop={VMAX}:{VMAX}:{int((w - VMAX) / 2)}:{int((h - VMAX) / 2)}'
+                elif w < VMAX:
                     crop = f'crop={w}:{h}:{0}:{0}'
 
-            if v.duration < 60:
-                process = subprocess.Popen(['ffmpeg', '-y', '-i', 'in.mp4', '-filter:v', crop, 'out.mp4'])
-            else:
-                process = subprocess.Popen(['ffmpeg', '-y', '-ss', '00:00:00', '-to', '00:01:00',
-                                            '-i', 'in.mp4', '-filter:v', crop, 'out.mp4'])
+            process = subprocess.Popen(['ffmpeg', '-y', '-i', 'in.mp4', '-filter:v', crop, 'out.mp4'])
 
             if process.wait() == 0 and os.path.exists("out.mp4"):
                 await bot.send_video_note(chat_id=msg.from_user.id, video_note=FSInputFile("out.mp4"))
